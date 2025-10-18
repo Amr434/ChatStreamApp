@@ -31,7 +31,8 @@ namespace Application.Interfaces.Repositories
         public Task LogoutAsync();
 
         public Task<IList<string>> GetUserRolesAsync(ApplicationUser user);
+        public Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user);
 
-
+        public Task<ApplicationUser?> GetUserByEmailAsync(string email);
     }
 }

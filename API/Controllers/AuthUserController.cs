@@ -149,6 +149,18 @@ namespace API.Controllers
                 return Unauthorized(result.Error);
             return Ok(new { Success = true, User = result.Value });
         }
+        [Authorize]
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest dto)
+        {
+            var result = await _userService.ForgotPasswordAsync(dto.Email);
+            if (!result.Success)
+                return BadRequest(result.Error);
+
+            return Ok("Password reset link has been sent to your email.");
+        }
+
+
 
     }
 }

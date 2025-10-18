@@ -26,13 +26,15 @@ namespace Application.Services.User
 
         private readonly IMapper _mapper;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
 
 
-        public UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration)
+        public UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration configuration, IEmailService emailService)
         {
             _mapper = mapper;
             _configuration = configuration;
             _UnitOfWork = unitOfWork;
+            _emailService = emailService;
         }
 
         public async Task<Result<bool>> ExistsAsync(string userId)
@@ -241,8 +243,6 @@ namespace Application.Services.User
                 return Result.Failure($"An error occurred while setting user Offline: {ex.Message}");
             }
         }
-
-        
 
         public async Task<Result> SetUserStatusAsync(string userId, UserStatus status)
         {
@@ -486,6 +486,43 @@ namespace Application.Services.User
                 return Result<UserDto>.Failure("An Error occured While UploadUserImageProfile");
             }
                 
+        }
+        public async Task<Result> ForgotPasswordAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return Result.Failure("Email is required.");
+
+            try
+            {
+                var user = await _UnitOfWork.Users.GetUserByEmailAsync(email);
+                if (user == null)
+                    return Result.Failure("No account found with this email.");
+
+                var token = await _UnitOfWork.Users.GeneratePasswordResetTokenAsync(user);
+                if (string.IsNullOrWhiteSpace(token))
+                    return Result.Failure("Failed to generate reset token.");
+
+                var encodedToken = Uri.EscapeDataString(token);
+                var encodedEmail = Uri.EscapeDataString(email);
+
+                var resetLink = $"{_configuration["ClientUrl"]}/reset-password?email={encodedEmail}&token={encodedToken}";
+
+                var subject = "Reset Your Password";
+                var body = $@"
+                    <h3>Password Reset Request</h3>
+                    <p>Hello {user.UserName},</p>
+                    <p>Click the link below to reset your password. This link will expire soon:</p>
+                    <p><a href='{resetLink}'>Reset Password</a></p>
+                    <p>If you didn’t request this, please ignore this email.</p>";
+
+                await _emailService.SendEmailAsync(email, subject, body);
+
+                return Result.SuccessResult();
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure($"An error occurred while processing forgot password. Details: {ex.Message}");
+            }
         }
     }
 }

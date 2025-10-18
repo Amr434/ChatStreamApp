@@ -36,6 +36,7 @@ namespace Application.Services.User
 
         public Task<Result<UserDto>> UpdateUserProfileAsync(UserDto userDto);
         public Task<Result<UserDto>> UploadUserImageProfile(string userId, UploadProfileImageDto uploadProfileImageDto);
+        public Task<Result> ForgotPasswordAsync(string email);
 
     }
 }

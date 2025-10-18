@@ -49,6 +49,13 @@ namespace Infrastructure.Repositories
             return true;
         }
 
+        public async Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user)
+        {
+            if(user is null)
+                throw new ArgumentNullException(nameof(user));
+            return await _userManager.GeneratePasswordResetTokenAsync(user);
+        }
+
         public async Task<IEnumerable<ApplicationUser>> GetAllAsync()
         {
             return await _userManager.Users.ToListAsync();
@@ -100,6 +107,12 @@ namespace Infrastructure.Repositories
             if (emailAddressAttribute.IsValid(email))
                 return true;
             return false;
+        }
+        public async Task<ApplicationUser?> GetUserByEmailAsync(string email)
+        {
+            if (string.IsNullOrEmpty(email))
+                throw new ArgumentNullException(nameof(email));
+            return await _userManager.FindByEmailAsync(email);
         }
         
        
