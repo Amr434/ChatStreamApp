@@ -1,4 +1,5 @@
-﻿using Domain.Entities;
+﻿using ChatApp.Infrastructure.Identity;
+using Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;

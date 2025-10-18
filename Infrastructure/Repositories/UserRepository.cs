@@ -114,7 +114,14 @@ namespace Infrastructure.Repositories
                 throw new ArgumentNullException(nameof(email));
             return await _userManager.FindByEmailAsync(email);
         }
-        
-       
+        public async Task<IdentityResult> ResetPasswordAsync(ApplicationUser user,string token,string newPassword)
+        {
+            return await _userManager.ResetPasswordAsync(user, token, newPassword);
+        }
+        public async Task<IdentityResult> UpdateSecurityStampAsync(ApplicationUser user)
+        {
+           return await _userManager.UpdateSecurityStampAsync(user);
+        }
+
     }
 }

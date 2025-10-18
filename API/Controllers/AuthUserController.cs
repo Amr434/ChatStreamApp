@@ -1,5 +1,6 @@
 ﻿using Application.DTOs.User;
 using Application.Services.User;
+using ChatApp.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -149,7 +150,7 @@ namespace API.Controllers
                 return Unauthorized(result.Error);
             return Ok(new { Success = true, User = result.Value });
         }
-        [Authorize]
+        [AllowAnonymous]
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest dto)
         {
@@ -159,8 +160,19 @@ namespace API.Controllers
 
             return Ok("Password reset link has been sent to your email.");
         }
-
-
-
+        [AllowAnonymous]
+        [HttpGet("reset-password")]
+        public async Task<ActionResult> ResetPassword([FromQuery] ResetPasswordRequest resetPasswordRequest)
+        {
+            if (resetPasswordRequest is null || string.IsNullOrEmpty(resetPasswordRequest.NewPassword) || string.IsNullOrEmpty(resetPasswordRequest.Token) || string.IsNullOrEmpty(resetPasswordRequest.Email))
+                return BadRequest("Invalid ResetPasswordRequest Data");
+            var result = await _userService.ResetPasswordAsync(resetPasswordRequest.Email, resetPasswordRequest.Token, resetPasswordRequest.NewPassword);
+            if (!result.Success)
+                return BadRequest(result.Error);
+            return Ok(new
+            {
+                Message = result.Value
+            });          
+        }
     }
 }

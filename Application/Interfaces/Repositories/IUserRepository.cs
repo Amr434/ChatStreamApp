@@ -14,9 +14,7 @@ namespace Application.Interfaces.Repositories
 {
     public interface IUserRepository
     {
-        //<sumary>
-        //Get User Depend on expression like (username , Email , id)
-        //</summary>
+
         public Task<ApplicationUser?> GetAsync(Expression<Func<ApplicationUser,bool>> predicate,CancellationToken cancellationToken=default);
         Task<IEnumerable<ApplicationUser>> GetAllAsync();
         Task<IEnumerable<ApplicationUser>> GetOnlineUsersAsync();
@@ -34,5 +32,9 @@ namespace Application.Interfaces.Repositories
         public Task<string> GeneratePasswordResetTokenAsync(ApplicationUser user);
 
         public Task<ApplicationUser?> GetUserByEmailAsync(string email);
+
+        public Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword);
+        public Task<IdentityResult> UpdateSecurityStampAsync(ApplicationUser user);
+
     }
 }
