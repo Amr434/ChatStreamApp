@@ -17,6 +17,7 @@ using Application.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using System.Text.Json;
 using Application.Settings;
+using Microsoft.AspNetCore.Identity;
 
 namespace Application.Services.User
 {
@@ -145,7 +146,7 @@ namespace Application.Services.User
                     return Result<object>.Failure("Invalid email or password.");
 
                 // Generate JWT Access Token
-                var accessToken =await _GenerateJwtToken(user);
+                var accessToken = await _GenerateJwtToken(user);
                 if (string.IsNullOrEmpty(accessToken))
                     return Result<object>.Failure("Failed to generate access token.");
 
@@ -307,7 +308,7 @@ namespace Application.Services.User
 
         private async Task<string> _GenerateJwtToken(ApplicationUser user)
         {
-            string  _secretKey = _configuration["JwtSettings:Key"];
+            string _secretKey = _configuration["JwtSettings:Key"];
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
@@ -316,12 +317,12 @@ namespace Application.Services.User
             };
 
             // Add Roles T Use If Have
-           var roles= await _UnitOfWork.Users.GetUserRolesAsync(user);
+            var roles = await _UnitOfWork.Users.GetUserRolesAsync(user);
             if (roles != null || roles.Count == 0)
                 claims.AddRange(roles.Select(x => new Claim(ClaimTypes.Role, x)));
             else
                 claims.Add(new Claim(ClaimTypes.Role, "User"));
-            
+
             var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -334,7 +335,7 @@ namespace Application.Services.User
             );
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-        private  string GenerateSecureToken(int length = 64)
+        private string GenerateSecureToken(int length = 64)
         {
             var randomBytes = new byte[length];
 
@@ -426,12 +427,12 @@ namespace Application.Services.User
                 return Result<UserDto>.Failure("User update object cannot be null.");
 
             var user = await _UnitOfWork.Users.GetAsync(
-                u => u.NormalizedEmail.ToString()==updateUserDto.Email.ToUpper());
+                u => u.NormalizedEmail.ToString() == updateUserDto.Email.ToUpper());
 
             if (user == null)
                 return Result<UserDto>.Failure("User not found.");
 
-           var isValidEmailFormate= _UnitOfWork.Users.ValidateEmailFormat(updateUserDto.Email);
+            var isValidEmailFormate = _UnitOfWork.Users.ValidateEmailFormat(updateUserDto.Email);
             if (!isValidEmailFormate)
                 return Result<UserDto>.Failure("Email Formate Not Valid");
 
@@ -453,10 +454,10 @@ namespace Application.Services.User
         {
             if (userId == null || uploadProfileImageDto.Image == null || uploadProfileImageDto.Image.Length == 0)
                 return Result<UserDto>.Failure("Invalid Image Upload Request.");
-            
-                var userResult = await GetUserByIdAsync(userId);
-                if (!userResult.Success || userResult.Value == null)
-                    return Result<UserDto>.Failure("User not found.");
+
+            var userResult = await GetUserByIdAsync(userId);
+            if (!userResult.Success || userResult.Value == null)
+                return Result<UserDto>.Failure("User not found.");
             var user = userResult.Value;
 
             try
@@ -485,7 +486,7 @@ namespace Application.Services.User
             {
                 return Result<UserDto>.Failure("An Error occured While UploadUserImageProfile");
             }
-                
+
         }
         public async Task<Result> ForgotPasswordAsync(string email)
         {
@@ -505,7 +506,7 @@ namespace Application.Services.User
                 var encodedToken = Uri.EscapeDataString(token);
                 var encodedEmail = Uri.EscapeDataString(email);
 
-                var resetLink = $"{_configuration["ClientUrl"]}/reset-password?email={encodedEmail}&token={encodedToken}";
+                var resetLink = $"{_configuration["ClientUrl"]}AuthUser/reset-password?email={encodedEmail}&token={encodedToken}";
 
                 var subject = "Reset Your Password";
                 var body = $@"
@@ -524,5 +525,41 @@ namespace Application.Services.User
                 return Result.Failure($"An error occurred while processing forgot password. Details: {ex.Message}");
             }
         }
+        public async Task<Result<string>> ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(email) ||
+                string.IsNullOrWhiteSpace(token) ||
+                string.IsNullOrWhiteSpace(newPassword))
+            {
+                return Result<string>.Failure("Email, token, and new password are required.");
+            }
+
+            try
+            {
+                var user = await _UnitOfWork.Users.GetUserByEmailAsync(email);
+                if (user == null)
+                    return Result<string>.Failure("User not found.");
+
+                var decodedToken = Uri.UnescapeDataString(token);
+
+                var resetResult = await _UnitOfWork.Users.ResetPasswordAsync(user, decodedToken, newPassword);
+                if (!resetResult.Succeeded)
+                {
+                    var errors = string.Join("; ", resetResult.Errors.Select(e => e.Description));
+                    return Result<string>.Failure($"Password reset failed: {errors}");
+                }
+
+                var stampResult = await _UnitOfWork.Users.UpdateSecurityStampAsync(user);
+                if (!stampResult.Succeeded)
+                    return Result<string>.Failure("Failed to update security stamp.");
+
+                return Result<string>.SuccessResult("Password has been reset successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Result<string>.Failure($"Unexpected error occurred: {ex.Message}");
+            }
+        }
+
     }
 }

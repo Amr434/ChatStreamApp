@@ -1,4 +1,5 @@
 ﻿using Application.Interfaces.Repositories;
+using ChatApp.Infrastructure.Identity;
 using ChatApp.Infrastructure.Persistence;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -109,5 +110,7 @@ namespace Infrastructure.Repositories
             _context.RefreshTokens.Update(refreshToken);
             await SaveChangesAsync();
         }
+
+        
     }
 }
