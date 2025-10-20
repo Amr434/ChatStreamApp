@@ -34,10 +34,19 @@ namespace Application.Services.User
         public Task<Result<object>> RefreshTokenAsync(string refreshToken);
         public Task<Result<UserDto>> GetProfileAsync(string UserId);
 
-        public Task<Result<UserDto>> UpdateUserProfileAsync(UserDto userDto);
+        public Task<Result<UserDto>> UpdateUserProfileAsync(UserDto userDto,string userId);
         public Task<Result<UserDto>> UploadUserImageProfile(string userId, UploadProfileImageDto uploadProfileImageDto);
         public Task<Result> ForgotPasswordAsync(string email);
         public Task<Result<string>> ResetPasswordAsync(string email, string token, string newPassword);
+        public Task<Result> DeleteUserAsync(string email);
+        public Task<Result<string>> LockUserAsync(string id);
+        public Task<Result<string>> UnLockUserAsync(string userId);
+        public Task<Result<AdminUpdateUserDto>> UpdateUserProfileAsync(AdminUpdateUserDto adminUpdateUser);
+        public Task<Result<string>> CreateUserAsync(CreateUserByAdminDto createUserByAdminDto);
+
+        public Task<Result<List<string>>> GetAllRolesAsync();
+        public Task<Result<string>> RemoveRoleAsync(string roleName);
+
 
     }
 }

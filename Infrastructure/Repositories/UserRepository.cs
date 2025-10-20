@@ -1,4 +1,6 @@
-﻿using Application.Interfaces.Repositories;
+﻿using Application.Common.Model;
+using Application.Interfaces.Repositories;
+using ChatApp.Domain.Entities;
 using ChatApp.Infrastructure.Identity;
 using Domain.Enums;
 using Microsoft.AspNetCore.Identity;
@@ -13,24 +15,23 @@ namespace Infrastructure.Repositories
     {
        private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly RoleManager<ApplicationRole> _roleManager;
         public UserRepository(UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager
+            SignInManager<ApplicationUser> signInManager,RoleManager<ApplicationRole> roleManager
             )
         {
             _userManager = userManager;
             _signInManager = signInManager;
-
+            _roleManager = roleManager;
         }
-
         public async Task<bool> CheckPasswordAsync(ApplicationUser user, string password)
         {
            return await _userManager.CheckPasswordAsync(user, password); 
         }
 
-        public async Task<bool> CreateAsync(ApplicationUser user,string password)
+        public async Task<IdentityResult> CreateAsync(ApplicationUser user,string password)
         {
-           var result= await _userManager.CreateAsync(user,password);
-            return result.Succeeded;
+           return await _userManager.CreateAsync(user,password);
         }
         public async Task<bool> DeleteAsync(string userId)
         {
@@ -122,6 +123,59 @@ namespace Infrastructure.Repositories
         {
            return await _userManager.UpdateSecurityStampAsync(user);
         }
+        public async Task<IdentityResult> DeleteUserAsync(string email)
+        {
+            var user =await GetUserByEmailAsync(email);
+          return await _userManager.DeleteAsync(user);
+        }
+        public void LockUser(ApplicationUser user)
+        {
+            user.LockoutEnd = DateTimeOffset.UtcNow.AddYears(100);
+        }
+        public void UnLockUser(ApplicationUser user)
+        {
+            user.LockoutEnd = null;
+        }
 
+        public async Task AddToRoleAsync(ApplicationUser user, string role)
+        {
+          await  _userManager.AddToRoleAsync(user, role);
+        }
+
+        public async Task RemoveFromRoleAsync(ApplicationUser user, string role)
+        {
+            await _userManager.RemoveFromRoleAsync(user, role);
+        }
+
+        public async Task<bool> ExistsAsync(Expression<Func<ApplicationUser, bool>> predicate, CancellationToken cancellationToken = default)
+        {
+            return await _userManager.Users.AnyAsync(predicate, cancellationToken);
+        }
+        public async Task AddToRolesAsync(ApplicationUser user, IEnumerable<string> roles)
+        {
+           await _userManager.AddToRolesAsync(user, roles);
+        }
+
+        public async Task<IEnumerable<string>> GetAllRolesNameAsync()
+        {
+            return await _roleManager.Roles
+                .Select(r => r.Name)
+                .ToListAsync();
+        }
+
+        public async Task<IdentityResult> DeleteAsync(ApplicationRole role)
+        {
+           return await _roleManager.DeleteAsync(role);
+        }
+
+        public async Task<ApplicationRole> GetRoleAsync(Expression<Func<ApplicationRole, bool>> predicate, CancellationToken cancellationToken = default)
+        {
+            return await _roleManager.Roles.FirstAsync(predicate, cancellationToken);
+        }
+
+        public async Task<bool> IsLockedOutAsync(ApplicationUser user)
+        {
+            return await _userManager.IsLockedOutAsync(user);
+        }
     }
 }
