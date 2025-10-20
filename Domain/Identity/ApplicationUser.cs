@@ -14,6 +14,7 @@ public class ApplicationUser : IdentityUser<Guid>
     public UserStatus Status { get; set; }
     public DateTimeOffset LastSeen { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    
     public IEnumerable<Message> Messages { get; set; } 
         = new List<Message>();
     public ICollection<Connection> Connections { get; set; } = new List<Connection>();

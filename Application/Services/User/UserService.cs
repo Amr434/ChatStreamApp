@@ -23,7 +23,7 @@ namespace Application.Services.User
 {
     public class UserService : IUserService
     {
-        private readonly IUnitOfWork _UnitOfWork;
+        private readonly IUnitOfWork _unitOfWork;
 
         private readonly IMapper _mapper;
         private readonly IConfiguration _configuration;
@@ -34,7 +34,7 @@ namespace Application.Services.User
         {
             _mapper = mapper;
             _configuration = configuration;
-            _UnitOfWork = unitOfWork;
+            _unitOfWork = unitOfWork;
             _emailService = emailService;
         }
 
@@ -44,7 +44,7 @@ namespace Application.Services.User
                 return Result<bool>.Failure("User ID cannot be null or empty.");
             try
             {
-                var exists = await _UnitOfWork.Users.ExistsAsync(userId);
+                var exists = await _unitOfWork.Users.ExistsAsync(userId);
 
                 if (!exists)
                     return Result<bool>.Failure($"User with ID '{userId}' was not found.");
@@ -61,7 +61,7 @@ namespace Application.Services.User
         {
             try
             {
-                var users = await _UnitOfWork.Users.GetAllAsync();
+                var users = await _unitOfWork.Users.GetAllAsync();
                 if (users == null || !users.Any())
                     return Result<IEnumerable<ApplicationUser>>.Failure("No users found in the system.");
 
@@ -80,7 +80,7 @@ namespace Application.Services.User
             try
             {
 
-                var lastSeen = await _UnitOfWork.Users.GetLastSeenAsync(userId);
+                var lastSeen = await _unitOfWork.Users.GetLastSeenAsync(userId);
 
                 if (lastSeen == null)
                     return Result<DateTime?>.Failure($"No last seen record found for user ID '{userId}'.");
@@ -96,7 +96,7 @@ namespace Application.Services.User
         {
             try
             {
-                var onlineUsers = await _UnitOfWork.Users.GetOnlineUsersAsync();
+                var onlineUsers = await _unitOfWork.Users.GetOnlineUsersAsync();
 
                 if (onlineUsers == null || !onlineUsers.Any())
                     return Result<IEnumerable<ApplicationUser>>.Failure("No online users found.");
@@ -115,7 +115,7 @@ namespace Application.Services.User
                 return Result<ApplicationUser>.Failure("User ID cannot be null or empty.");
             try
             {
-                var user = await _UnitOfWork.Users.GetAsync(x => x.Id.ToString() == userId);
+                var user = await _unitOfWork.Users.GetAsync(x => x.Id.ToString() == userId);
                 if (user == null)
                     return Result<ApplicationUser>.Failure("User  cannot be Found.");
                 return Result<ApplicationUser>.SuccessResult(user);
@@ -137,11 +137,14 @@ namespace Application.Services.User
 
             try
             {
-                var user = await _UnitOfWork.Users.GetAsync(u => u.Email == loginDto.Email);
+                var user = await _unitOfWork.Users.GetAsync(u => u.Email == loginDto.Email);
                 if (user == null)
                     return Result<object>.Failure("Invalid email or password.");
+                var isLocked = await _unitOfWork.Users.IsLockedOutAsync(user);
+                if (isLocked)
+                    return Result<object>.Failure("User account is locked. Please try again later.");
 
-                var isPasswordValid = await _UnitOfWork.Users.CheckPasswordAsync(user, loginDto.Password);
+                var isPasswordValid = await _unitOfWork.Users.CheckPasswordAsync(user, loginDto.Password);
                 if (!isPasswordValid)
                     return Result<object>.Failure("Invalid email or password.");
 
@@ -151,7 +154,7 @@ namespace Application.Services.User
                     return Result<object>.Failure("Failed to generate access token.");
 
                 // Delete old refresh tokens (optional but recommended)
-                await _UnitOfWork.Token.DeleteUserRefreshTokensAsync(user.Id.ToString());
+                await _unitOfWork.Token.DeleteUserRefreshTokensAsync(user.Id.ToString());
 
                 // Generate new Refresh Token
                 var refreshToken = new RefreshToken
@@ -163,11 +166,11 @@ namespace Application.Services.User
                     CreatedAt = DateTime.UtcNow,
                 };
 
-                await _UnitOfWork.Token.SaveRefreshTokenAsync(refreshToken);
+                await _unitOfWork.Token.SaveRefreshTokenAsync(refreshToken);
 
-                await _UnitOfWork.Users.SetStatusAsync(user.Id.ToString(), UserStatus.Online);
+                await _unitOfWork.Users.SetStatusAsync(user.Id.ToString(), UserStatus.Online);
 
-                await _UnitOfWork.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
                 return Result<object>.SuccessResult(new
                 {
                     Success = true,
@@ -190,11 +193,11 @@ namespace Application.Services.User
 
             try
             {
-                if (!_UnitOfWork.Users.ValidateEmailFormat(registerDto.Email))
+                if (!_unitOfWork.Users.ValidateEmailFormat(registerDto.Email))
                     return Result.Failure("Invalid email format.");
 
 
-                var existingUser = await _UnitOfWork.Users.GetAsync(u => u.Email == registerDto.Email);
+                var existingUser = await _unitOfWork.Users.GetAsync(u => u.Email == registerDto.Email);
                 if (existingUser != null)
                     return Result.Failure("Email is already registered.");
 
@@ -205,9 +208,9 @@ namespace Application.Services.User
                 user.Status = UserStatus.Offline;
                 user.CreatedAt = DateTime.UtcNow;
 
-                var created = await _UnitOfWork.Users.CreateAsync(user, registerDto.Password);
-                if (!created)
-                    return Result.Failure("Failed to create user. Please try again.");
+                var result = await _unitOfWork.Users.CreateAsync(user, registerDto.Password);
+                if (!result.Succeeded)
+                    return Result.Failure($"Failed To Create The user Ex:{string.Join("",result.Errors.Select(x=>x.Description))}");
 
                 return Result.SuccessResult();
             }
@@ -225,17 +228,17 @@ namespace Application.Services.User
 
             try
             {
-                var user = await _UnitOfWork.Users.GetAsync(x => x.Id.ToString() == userId);
+                var user = await _unitOfWork.Users.GetAsync(x => x.Id.ToString() == userId);
 
                 if (user == null)
                     return Result.Failure($"User with ID '{userId}' does not exist.");
 
-                var updated = await _UnitOfWork.Users.SetStatusAsync(userId, UserStatus.Offline);
+                var updated = await _unitOfWork.Users.SetStatusAsync(userId, UserStatus.Offline);
                 if (!updated)
                     return Result.Failure("Failed to update user status to Offline.");
 
                 user.LastSeen = DateTimeOffset.UtcNow;
-                await _UnitOfWork.Users.UpdateAsync(user);
+                await _unitOfWork.Users.UpdateAsync(user);
 
                 return Result.SuccessResult();
             }
@@ -252,17 +255,17 @@ namespace Application.Services.User
 
             try
             {
-                var user = await _UnitOfWork.Users.GetAsync(x => x.Id.ToString() == userId);
+                var user = await _unitOfWork.Users.GetAsync(x => x.Id.ToString() == userId);
 
                 if (user == null)
                     return Result.Failure($"User with ID '{userId}' does not exist.");
 
-                var updated = await _UnitOfWork.Users.SetStatusAsync(userId, status);
+                var updated = await _unitOfWork.Users.SetStatusAsync(userId, status);
                 if (!updated)
                     return Result.Failure("Failed to update user status to Offline.");
 
                 user.LastSeen = DateTimeOffset.UtcNow;
-                await _UnitOfWork.Users.UpdateAsync(user);
+                await _unitOfWork.Users.UpdateAsync(user);
 
                 return Result.SuccessResult();
             }
@@ -282,7 +285,7 @@ namespace Application.Services.User
 
             try
             {
-                var storedToken = await _UnitOfWork.Token.GetByTokenAsync(refreshToken);
+                var storedToken = await _unitOfWork.Token.GetByTokenAsync(refreshToken);
 
                 if (storedToken == null || storedToken.isRevoked)
                     return Result<bool>.Failure("Invalid or already revoked refresh token.");
@@ -292,12 +295,12 @@ namespace Application.Services.User
 
                 storedToken.isRevoked = true;
 
-                await _UnitOfWork.Token.UpdateRefreshToken(storedToken);
-                await _UnitOfWork.Token.SaveChangesAsync();
+                await _unitOfWork.Token.UpdateRefreshToken(storedToken);
+                await _unitOfWork.Token.SaveChangesAsync();
 
-                await _UnitOfWork.Users.SetStatusAsync(userId, UserStatus.Offline);
+                await _unitOfWork.Users.SetStatusAsync(userId, UserStatus.Offline);
 
-                await _UnitOfWork.Users.LogoutAsync();
+                await _unitOfWork.Users.LogoutAsync();
                 return Result<bool>.SuccessResult(true);
             }
             catch (Exception ex)
@@ -317,7 +320,7 @@ namespace Application.Services.User
             };
 
             // Add Roles T Use If Have
-            var roles = await _UnitOfWork.Users.GetUserRolesAsync(user);
+            var roles = await _unitOfWork.Users.GetUserRolesAsync(user);
             if (roles != null || roles.Count == 0)
                 claims.AddRange(roles.Select(x => new Claim(ClaimTypes.Role, x)));
             else
@@ -357,20 +360,20 @@ namespace Application.Services.User
 
             try
             {
-                var existingToken = await _UnitOfWork.Token.GetByTokenAsync(refreshToken);
+                var existingToken = await _unitOfWork.Token.GetByTokenAsync(refreshToken);
                 if (existingToken is null)
                     return Result<object>.Failure("Invalid refresh token.");
 
                 if (existingToken.ExpiresAt <= DateTime.UtcNow || existingToken.isRevoked)
                     return Result<object>.Failure("Refresh token is expired or has been revoked.");
 
-                var user = await _UnitOfWork.Users.GetAsync(u => u.Id == existingToken.UserId);
+                var user = await _unitOfWork.Users.GetAsync(u => u.Id == existingToken.UserId);
                 if (user is null)
                     return Result<object>.Failure("User not found for this token.");
 
                 existingToken.isRevoked = true;
-                await _UnitOfWork.Token.UpdateRefreshToken(existingToken);
-                await _UnitOfWork.Token.SaveChangesAsync();
+                await _unitOfWork.Token.UpdateRefreshToken(existingToken);
+                await _unitOfWork.Token.SaveChangesAsync();
 
                 var newRefreshToken = new RefreshToken
                 {
@@ -382,7 +385,7 @@ namespace Application.Services.User
                     isRevoked = false
                 };
 
-                await _UnitOfWork.Token.SaveRefreshTokenAsync(newRefreshToken);
+                await _unitOfWork.Token.SaveRefreshTokenAsync(newRefreshToken);
 
                 var newAccessToken = await _GenerateJwtToken(user);
                 if (string.IsNullOrEmpty(newAccessToken))
@@ -407,7 +410,7 @@ namespace Application.Services.User
 
             try
             {
-                var user = await _UnitOfWork.Users.GetAsync(u => u.Id.ToString() == userId);
+                var user = await _unitOfWork.Users.GetAsync(u => u.Id.ToString() == userId);
                 if (user == null)
                     return Result<UserDto>.Failure("User not found.");
 
@@ -421,18 +424,18 @@ namespace Application.Services.User
             }
         }
 
-        public async Task<Result<UserDto>> UpdateUserProfileAsync(UserDto updateUserDto)
+        public async Task<Result<UserDto>> UpdateUserProfileAsync(UserDto updateUserDto,string userId)
         {
             if (updateUserDto == null)
                 return Result<UserDto>.Failure("User update object cannot be null.");
 
-            var user = await _UnitOfWork.Users.GetAsync(
-                u => u.NormalizedEmail.ToString() == updateUserDto.Email.ToUpper());
-
+            var user = await _unitOfWork.Users.GetAsync(
+                u => u.Id.ToString() == userId);
+            
             if (user == null)
                 return Result<UserDto>.Failure("User not found.");
 
-            var isValidEmailFormate = _UnitOfWork.Users.ValidateEmailFormat(updateUserDto.Email);
+            var isValidEmailFormate = _unitOfWork.Users.ValidateEmailFormat(updateUserDto.Email);
             if (!isValidEmailFormate)
                 return Result<UserDto>.Failure("Email Formate Not Valid");
 
@@ -440,12 +443,12 @@ namespace Application.Services.User
 
             user.LastSeen = DateTime.UtcNow;
 
-            var updateResult = await _UnitOfWork.Users.UpdateAsync(user);
+            var updateResult = await _unitOfWork.Users.UpdateAsync(user);
             if (!updateResult.Succeeded)
                 return Result<UserDto>.Failure(
                     $"Failed to update user profile. Errors: {string.Join(", ", updateResult.Errors.Select(e => e.Description))}");
 
-            await _UnitOfWork.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
 
             return await GetProfileAsync(user.Id.ToString());
         }
@@ -476,8 +479,8 @@ namespace Application.Services.User
                 }
 
                 user.ProfileImageUrl = $"/uploads/profile_images/{fileName}";
-                await _UnitOfWork.Users.UpdateAsync(user);
-                await _UnitOfWork.SaveChangesAsync();
+                await _unitOfWork.Users.UpdateAsync(user);
+                await _unitOfWork.SaveChangesAsync();
 
                 var userDto = _mapper.Map<UserDto>(user);
                 return Result<UserDto>.SuccessResult(userDto);
@@ -495,11 +498,11 @@ namespace Application.Services.User
 
             try
             {
-                var user = await _UnitOfWork.Users.GetUserByEmailAsync(email);
+                var user = await _unitOfWork.Users.GetUserByEmailAsync(email);
                 if (user == null)
                     return Result.Failure("No account found with this email.");
 
-                var token = await _UnitOfWork.Users.GeneratePasswordResetTokenAsync(user);
+                var token = await _unitOfWork.Users.GeneratePasswordResetTokenAsync(user);
                 if (string.IsNullOrWhiteSpace(token))
                     return Result.Failure("Failed to generate reset token.");
 
@@ -536,20 +539,20 @@ namespace Application.Services.User
 
             try
             {
-                var user = await _UnitOfWork.Users.GetUserByEmailAsync(email);
+                var user = await _unitOfWork.Users.GetUserByEmailAsync(email);
                 if (user == null)
                     return Result<string>.Failure("User not found.");
 
                 var decodedToken = Uri.UnescapeDataString(token);
 
-                var resetResult = await _UnitOfWork.Users.ResetPasswordAsync(user, decodedToken, newPassword);
+                var resetResult = await _unitOfWork.Users.ResetPasswordAsync(user, decodedToken, newPassword);
                 if (!resetResult.Succeeded)
                 {
                     var errors = string.Join("; ", resetResult.Errors.Select(e => e.Description));
                     return Result<string>.Failure($"Password reset failed: {errors}");
                 }
 
-                var stampResult = await _UnitOfWork.Users.UpdateSecurityStampAsync(user);
+                var stampResult = await _unitOfWork.Users.UpdateSecurityStampAsync(user);
                 if (!stampResult.Succeeded)
                     return Result<string>.Failure("Failed to update security stamp.");
 
@@ -560,6 +563,230 @@ namespace Application.Services.User
                 return Result<string>.Failure($"Unexpected error occurred: {ex.Message}");
             }
         }
+        public async Task<Result> DeleteUserAsync(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return Result.Failure("Email cannot be null or empty.");
 
+            try
+            {
+                var user = await _unitOfWork.Users.GetUserByEmailAsync(email);
+                if (user is null)
+                    return Result.Failure("User not found.");
+
+                var isDeleted = await _unitOfWork.Users.DeleteAsync(user.Id.ToString());
+                if (!isDeleted)
+                    return Result.Failure("Failed to delete user.");
+
+                return Result.SuccessResult();
+            }
+            catch (Exception ex)
+            {
+                return Result.Failure("An unexpected error occurred while deleting the user.");
+            }
+        }
+
+        public async Task<Result<string>> LockUserAsync(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return Result<string>.Failure("Invalid user ID.");
+
+            try
+            {
+                var user = await _unitOfWork.Users.GetAsync(u => u.Id.ToString() == userId);
+                if (user is null)
+                    return Result<string>.Failure("User not found.");
+
+                _unitOfWork.Users.LockUser(user);
+                var changes = await _unitOfWork.SaveChangesAsync();
+
+                if (changes == 0)
+                    return Result<string>.Failure("No changes were applied while locking the user.");
+
+                return Result<string>.SuccessResult("User has been locked successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Result<string>.Failure($"An unexpected error occurred while locking the user: {ex.Message}");
+            }
+        }
+        public async Task<Result<string>> UnLockUserAsync(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return Result<string>.Failure("Invalid user ID.");
+
+            try
+            {
+                var user = await _unitOfWork.Users.GetAsync(u => u.Id.ToString() == userId);
+                if (user is null)
+                    return Result<string>.Failure("User not found.");
+
+                _unitOfWork.Users.UnLockUser(user);
+                var changes = await _unitOfWork.SaveChangesAsync();
+
+                if (changes == 0)
+                    return Result<string>.Failure("No changes were applied while Unlocking the user.");
+
+                return Result<string>.SuccessResult("User has been Unlocked successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Result<string>.Failure($"An unexpected error occurred while locking the user: {ex.Message}");
+            }
+        }
+
+     
+        public async Task<Result<AdminUpdateUserDto>> UpdateUserProfileAsync(AdminUpdateUserDto dto)
+        {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Id))
+                return Result<AdminUpdateUserDto>.Failure("Invalid request. User ID is required.");
+
+            try
+            {
+                var user = await _unitOfWork.Users.GetAsync(u => u.Id.ToString() == dto.Id);
+                if (user == null)
+                    return Result<AdminUpdateUserDto>.Failure("User not found.");
+
+                if (!string.IsNullOrWhiteSpace(dto.Email) && dto.Email != user.Email)
+                {
+                    var existingUserByEmail = await _unitOfWork.Users.GetAsync(u => u.Email == dto.Email);
+                    if (existingUserByEmail != null)
+                        return Result<AdminUpdateUserDto    >.Failure("Email is already taken.");
+                }
+
+                if (!string.IsNullOrWhiteSpace(dto.UserName) && dto.UserName != user.UserName)
+                {
+                    var existingUserByUsername = await _unitOfWork.Users.GetAsync(u => u.UserName == dto.UserName);
+                    if (existingUserByUsername != null)
+                        return Result<AdminUpdateUserDto>.Failure("Username is already taken.");
+                }
+
+                _mapper.Map(dto, user);
+
+                if (dto.Roles != null && dto.Roles.Any())
+                {
+                    var currentRoles = await _unitOfWork.Users.GetUserRolesAsync(user);
+                    var rolesToAdd = dto.Roles.Except(currentRoles);
+                    var rolesToRemove = currentRoles.Except(dto.Roles);
+
+                    foreach (var role in rolesToAdd)
+                        await _unitOfWork.Users.AddToRoleAsync(user, role);
+
+                    foreach (var role in rolesToRemove)
+                        await _unitOfWork.Users.RemoveFromRoleAsync(user, role);
+                }
+
+                if (dto.Status.HasValue)
+                    user.Status = dto.Status.Value;
+
+                await _unitOfWork.Users.UpdateSecurityStampAsync(user);
+
+                await _unitOfWork.SaveChangesAsync();
+
+                var updateduser = _mapper.Map<AdminUpdateUserDto>(user);
+                return Result<AdminUpdateUserDto>.SuccessResult(updateduser);
+            }
+            catch (Exception ex)
+            {
+                return Result<AdminUpdateUserDto>.Failure($"An unexpected error occurred while updating user: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<string>> CreateUserAsync(CreateUserByAdminDto dto)
+        {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
+                return Result<string>.Failure("Email or Password cannot be empty.");
+
+            try
+            {
+                var isUserExist = await _unitOfWork.Users.ExistsAsync(x => x.Email == dto.Email);
+                if (isUserExist)
+                    return Result<string>.Failure("User already exists.");
+
+                var user = _mapper.Map<ApplicationUser>(dto);
+
+                if (dto.ProfileImage is not null && dto.ProfileImage.Length > 0)
+                {
+                    string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profile_images");
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
+
+                    var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(dto.ProfileImage.FileName)}";
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                        await dto.ProfileImage.CopyToAsync(stream);
+
+                    user.ProfileImageUrl = $"/uploads/profile_images/{uniqueFileName}";
+                }
+
+                var result = await _unitOfWork.Users.CreateAsync(user, dto.Password);
+                if (!result.Succeeded)
+                    return Result<string>.Failure(string.Join(",", result.Errors.Select(e => e.Description)));
+
+                if (dto.Roles != null && dto.Roles.Any())
+                    await _unitOfWork.Users.AddToRolesAsync(user, dto.Roles);
+
+                int changeResult = await _unitOfWork.SaveChangesAsync();
+                if (changeResult == 0)
+                    return Result<string>.Failure("Failed to save changes.");
+
+                return Result<string>.SuccessResult("User result successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Result<string>.Failure($"An error occurred while creating the user. Details: {ex.Message}");
+            }
+        }
+
+        public async Task<Result<List<string>>> GetAllRolesAsync()
+        {
+            try
+            {
+                var roles = await _unitOfWork.Users.GetAllRolesNameAsync();
+
+                if (roles == null || !roles.Any())
+                    return Result<List<string>>.Failure("No roles found.");
+
+                return Result<List<string>>.SuccessResult(roles.ToList());
+            }
+            catch (Exception ex)
+            {
+                return Result<List<string>>.Failure($"An error occurred while retrieving roles. Details: {ex.Message}");
+            }
+        }
+        public async Task<Result<string>> RemoveRoleAsync(string roleName)
+        {
+            if (string.IsNullOrWhiteSpace(roleName))
+                return Result<string>.Failure("Role name cannot be null or empty.");
+
+            try
+            {
+                var role = await _unitOfWork.Users.GetRoleAsync(r =>
+                    r.Name.ToLower()== roleName.ToLower());
+
+                if (role is null)
+                    return Result<string>.Failure($"Role '{roleName}' not found.");
+
+                var result = await _unitOfWork.Users.DeleteAsync(role);
+
+                if (!result.Succeeded)
+                {
+                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                    return Result<string>.Failure($"Failed to remove role. Errors: {errors}");
+                }
+
+                await _unitOfWork.SaveChangesAsync();
+
+                return Result<string>.SuccessResult($"Role '{roleName}' removed successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Result<string>.Failure($"An error occurred while removing the role. Details: {ex.Message}");
+            }
+        }
+
+        
     }
 }
+

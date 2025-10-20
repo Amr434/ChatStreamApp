@@ -119,13 +119,18 @@ namespace API.Controllers
             return Ok(user);
         }
         [Authorize(Roles = "User,Admin")]
-
         [HttpPost("Update-Profile")]
-        public async Task<ActionResult> UpdateUserProfie(UserDto updateUserDto)
+        public async Task<ActionResult> UpdateProfie(UserDto updateUserDto)
         {
             if (updateUserDto == null)
                 return BadRequest("Updated Object Should Not To Be Null");
-           var result= await _userService.UpdateUserProfileAsync(updateUserDto);
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!string.IsNullOrEmpty(userId))
+                return Unauthorized("User Is Not Authorized");
+
+            var result = await _userService.UpdateUserProfileAsync(updateUserDto,userId.ToString());
 
             if (!result.Success)
                 return BadRequest(result.Error);
@@ -174,5 +179,6 @@ namespace API.Controllers
                 Message = result.Value
             });          
         }
+       
     }
 }

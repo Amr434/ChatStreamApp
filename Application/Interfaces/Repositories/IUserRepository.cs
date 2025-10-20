@@ -1,5 +1,6 @@
 ﻿using Application.Common.Model;
 using Application.DTOs.User;
+using ChatApp.Domain.Entities;
 using ChatApp.Infrastructure.Identity;
 using Domain.Enums;
 using Microsoft.AspNetCore.Identity;
@@ -16,9 +17,12 @@ namespace Application.Interfaces.Repositories
     {
 
         public Task<ApplicationUser?> GetAsync(Expression<Func<ApplicationUser,bool>> predicate,CancellationToken cancellationToken=default);
+        public Task<bool> ExistsAsync(Expression<Func<ApplicationUser, bool>> predicate, CancellationToken cancellationToken = default);
+        public Task<ApplicationRole> GetRoleAsync(Expression<Func<ApplicationRole,bool>> predicate,CancellationToken cancellationToken=default);
+
         Task<IEnumerable<ApplicationUser>> GetAllAsync();
         Task<IEnumerable<ApplicationUser>> GetOnlineUsersAsync();
-        Task<bool> CreateAsync(ApplicationUser user,string password);
+        Task<IdentityResult> CreateAsync(ApplicationUser user,string password);
         Task<IdentityResult> UpdateAsync(ApplicationUser user);
         Task<bool> DeleteAsync(string userId);
         Task<bool> SetStatusAsync(string userId, UserStatus status);
@@ -35,6 +39,14 @@ namespace Application.Interfaces.Repositories
 
         public Task<IdentityResult> ResetPasswordAsync(ApplicationUser user, string token, string newPassword);
         public Task<IdentityResult> UpdateSecurityStampAsync(ApplicationUser user);
-
+        public Task<IdentityResult> DeleteUserAsync(string email);
+        public void LockUser(ApplicationUser user);
+        public void UnLockUser(ApplicationUser user);
+        public Task AddToRoleAsync(ApplicationUser user, string role);
+        public Task AddToRolesAsync(ApplicationUser user, IEnumerable<string> roles);
+        public Task RemoveFromRoleAsync(ApplicationUser user, string role);
+        public Task<IEnumerable<string>> GetAllRolesNameAsync();
+        public  Task<IdentityResult> DeleteAsync(ApplicationRole role);
+        public Task<bool> IsLockedOutAsync(ApplicationUser user);
     }
 }
