@@ -1,4 +1,5 @@
 ﻿using Application.Interfaces.Repositories;
+using Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,10 @@ namespace Application.Interfaces
     {
         IUserRepository Users {get;}
         ITokenRepository Token {get;}
+        IChatRepository ChatRoomRepository {get;}
+        IMessageRepository MessageRepository {get;}
         Task<int> SaveChangesAsync();
+        
     }
 
 }

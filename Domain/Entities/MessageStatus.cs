@@ -1,14 +1,23 @@
-﻿using ChatApp.Domain.Entities;
-using ChatApp.Infrastructure.Identity;
+﻿using ChatApp.Infrastructure.Identity;
+using System;
 
-public class MessageStatus
+namespace ChatApp.Domain.Entities
 {
-    public Guid MessageId { get; set; }
-    public Message Message { get; set; } = null!;
+    public class MessageStatus
+    {
+        // Composite Key (MessageId + UserId)
+        public Guid MessageId { get; set; }
+        public Message Message { get; set; } = null!;
 
-    public Guid UserId { get; set; }
-    public ApplicationUser User { get; set; } = null!;
+        public Guid UserId { get; set; }
+        public ApplicationUser User { get; set; } = null!;
 
-    public bool IsRead { get; set; }
-    public DateTime? ReadAt { get; set; }
+        // Status info
+        public bool IsDelivered { get; set; }   // Optional: for “Delivered ✓”
+        public bool IsRead { get; set; }
+        public DateTime? ReadAt { get; set; }
+
+        // Optional
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    }
 }

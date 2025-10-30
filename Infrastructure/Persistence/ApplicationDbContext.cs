@@ -11,6 +11,8 @@ namespace ChatApp.Infrastructure.Persistence
         : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>
     {
         public DbSet<Message> Messages { get; set; }
+        public DbSet<ChatRoom> chatRooms { get; set; }
+        public DbSet<Connection> Connections { get; set; }
         public DbSet<UserChat> UserChats { get; set; }
         public DbSet<ApplicationUser> users { get; set; }
         public DbSet<ApplicationRole> roles { get; set; }
@@ -28,6 +30,9 @@ namespace ChatApp.Infrastructure.Persistence
         {
             base.OnModelCreating(builder);
             builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+
         }
+        
     }
 }

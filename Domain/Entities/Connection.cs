@@ -1,6 +1,6 @@
 ﻿using ChatApp.Infrastructure.Identity;
 
-namespace ChatterSphere.Domain.Entities
+namespace ChatApp.Domain.Entities
 {
     public class Connection
     {

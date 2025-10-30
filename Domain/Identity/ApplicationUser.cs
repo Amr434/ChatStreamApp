@@ -1,6 +1,5 @@
 ﻿
 using ChatApp.Domain.Entities;
-using ChatterSphere.Domain.Entities;
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.AspNetCore.Identity;

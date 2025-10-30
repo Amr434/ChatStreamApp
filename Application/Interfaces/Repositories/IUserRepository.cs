@@ -21,6 +21,7 @@ namespace Application.Interfaces.Repositories
         public Task<ApplicationRole> GetRoleAsync(Expression<Func<ApplicationRole,bool>> predicate,CancellationToken cancellationToken=default);
 
         Task<IEnumerable<ApplicationUser>> GetAllAsync();
+        Task<IEnumerable<ApplicationUser>> GetAllAsync(Expression<Func<ApplicationUser,bool>> predicate);
         Task<IEnumerable<ApplicationUser>> GetOnlineUsersAsync();
         Task<IdentityResult> CreateAsync(ApplicationUser user,string password);
         Task<IdentityResult> UpdateAsync(ApplicationUser user);

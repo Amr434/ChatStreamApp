@@ -1,5 +1,6 @@
 ﻿using ChatApp.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Configuration
@@ -12,8 +13,9 @@ namespace Infrastructure.Configuration
 
             builder.HasKey(x => new { x.UserId, x.ChatRoomId });
 
-            builder.Property(x => x.IsAdmin)
-                   .HasDefaultValue(false);
+            builder.Property(x => x.Role)
+                .HasConversion<int>()
+                   .HasDefaultValue(ChatRole.Member);
 
             builder.Property(x => x.JoinedAt)
                    .HasDefaultValueSql("GETUTCDATE()")
@@ -31,3 +33,4 @@ namespace Infrastructure.Configuration
         }
     }
 }
+
