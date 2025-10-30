@@ -38,6 +38,11 @@ namespace Infrastructure.Configuration
                    .WithOne(r => r.Message)
                    .HasForeignKey(r => r.MessageId)
                    .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasMany(x=>x.MessageStatuses)
+                   .WithOne(ms => ms.Message)
+                   .HasForeignKey(ms => ms.MessageId)
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

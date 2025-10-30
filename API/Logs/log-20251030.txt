@@ -1,0 +1,14 @@
+[2025-10-30 14:40:06 INF] User profile is available. Using 'C:\Users\amr.kasban\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+[2025-10-30 14:40:07 INF] Now listening on: https://localhost:7208
+[2025-10-30 14:40:07 INF] Now listening on: http://localhost:5203
+[2025-10-30 14:40:08 INF] Application started. Press Ctrl+C to shut down.
+[2025-10-30 14:40:08 INF] Hosting environment: Development
+[2025-10-30 14:40:08 INF] Content root path: D:\DummyLearningProjects\StreamChatApp\API
+[2025-10-30 14:40:16 INF] Request starting HTTP/2 GET https://localhost:7208/swagger/index.html - null null
+[2025-10-30 14:40:18 INF] Request finished HTTP/2 GET https://localhost:7208/swagger/index.html - 200 null text/html;charset=utf-8 2094.132ms
+[2025-10-30 14:40:18 INF] Request starting HTTP/2 GET https://localhost:7208/_vs/browserLink - null null
+[2025-10-30 14:40:18 INF] Request starting HTTP/2 GET https://localhost:7208/_framework/aspnetcore-browser-refresh.js - null null
+[2025-10-30 14:40:18 INF] Request finished HTTP/2 GET https://localhost:7208/_framework/aspnetcore-browser-refresh.js - 200 13742 application/javascript; charset=utf-8 64.8905ms
+[2025-10-30 14:40:18 INF] Request finished HTTP/2 GET https://localhost:7208/_vs/browserLink - 200 null text/javascript; charset=UTF-8 244.6113ms
+[2025-10-30 14:40:19 INF] Request starting HTTP/2 GET https://localhost:7208/swagger/v1/swagger.json - null null
+[2025-10-30 14:40:19 INF] Request finished HTTP/2 GET https://localhost:7208/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 267.8943ms

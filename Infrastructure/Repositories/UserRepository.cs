@@ -177,5 +177,14 @@ namespace Infrastructure.Repositories
         {
             return await _userManager.IsLockedOutAsync(user);
         }
+
+        public async Task<IEnumerable<ApplicationUser>> GetAllAsync(Expression<Func<ApplicationUser, bool>> predicate)
+        {
+            return await _userManager.Users
+                .Where(predicate)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
     }
 }

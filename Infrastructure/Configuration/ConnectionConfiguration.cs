@@ -1,5 +1,4 @@
 ﻿using ChatApp.Domain.Entities;
-using ChatterSphere.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -10,17 +9,22 @@ namespace Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<Connection> builder)
         {
             builder.ToTable("Connections");
+
             builder.HasKey(x => x.ConnectionId);
 
             builder.Property(x => x.ConnectionId)
-                   .ValueGeneratedNever(); 
+                   .ValueGeneratedNever();
 
             builder.Property(x => x.ConnectedAt)
                    .HasDefaultValueSql("GETUTCDATE()");
 
+            builder.HasIndex(x => x.UserId);
+
             builder.HasOne(x => x.User)
-                .WithMany(c => c.Connections)
-               .HasForeignKey(x => x.UserId);
+                .WithMany(u => u.Connections)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
+
     }
 }
