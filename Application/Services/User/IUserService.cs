@@ -21,7 +21,7 @@ namespace Application.Services.User
 
             Task<Result<IEnumerable<ApplicationUser>>> GetAllUsersAsync(CancellationToken cancellationToken = default);
 
-            Task<Result<IEnumerable<ApplicationUser>>> GetOnlineUsersAsync(CancellationToken cancellationToken = default);
+            Task<Result<IEnumerable<ApplicationUser>>> GetOnlineUsersAsync();
 
             Task<Result> SetUserStatusAsync(string userId, UserStatus status);
 
